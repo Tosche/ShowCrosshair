@@ -14,7 +14,8 @@ import objc
 from GlyphsApp import *
 from GlyphsApp.plugins import *
 from math import radians, tan, hypot
-from AppKit import NSOnState
+from AppKit import NSOnState, NSOffState
+import traceback
 # to set context menu set state
 # from AppKit import NSBundle
 # path = __file__
@@ -67,8 +68,10 @@ class ShowCrosshair(ReporterPlugin):
 			'zh': u"仅在拖动时显示",
 			}
 		menu = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(Glyphs.localize(onlyWhileDraggingOption), self.toggleUniversalCrosshair, "")
-		if Glyphs.defaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] is False:
+		if Glyphs.defaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] == 0:
 			menu.setState_(NSOnState)
+		# else:
+		# 	menu.setState_(NSOffState)
 		contextMenus.append({"menu": menu})
 
 		thicknessOption = {
@@ -110,6 +113,7 @@ class ShowCrosshair(ReporterPlugin):
 		menu = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(Glyphs.localize(verticalOnlyOption), self.toggleShowItalic0, "")
 		if Glyphs.defaults["com.mekkablue.ShowCrosshair.italicAxis"] == 0:
 			menu.setState_(NSOnState)
+			menu.setOnStateImage_(dot)
 		contextMenus.append({"menu": menu})
 
 		italicOnlyOption = {
@@ -123,6 +127,7 @@ class ShowCrosshair(ReporterPlugin):
 		menu = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(Glyphs.localize(italicOnlyOption), self.toggleShowItalic1, "")
 		if Glyphs.defaults["com.mekkablue.ShowCrosshair.italicAxis"] == 1:
 			menu.setState_(NSOnState)
+			menu.setOnStateImage_(dot)
 		contextMenus.append({"menu": menu})
 
 		bothVerticalItalicOption = {
@@ -136,6 +141,7 @@ class ShowCrosshair(ReporterPlugin):
 		menu = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(Glyphs.localize(bothVerticalItalicOption), self.toggleShowItalic2, "")
 		if Glyphs.defaults["com.mekkablue.ShowCrosshair.italicAxis"] == 2:
 			menu.setState_(NSOnState)
+			menu.setOnStateImage_(dot)
 		contextMenus.append({"menu": menu})
 
 		# ---------- Separator
@@ -294,7 +300,10 @@ class ShowCrosshair(ReporterPlugin):
 	
 	@objc.python_method
 	def foreground(self, layer):
-		toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
+		theController = Glyphs.currentDocument.windowController()
+		toolEventHandler = theController.toolEventHandler()
+
+		# toolEventHandler = theController.view().window().windowController().toolEventHandler()
 		toolIsDragging = toolEventHandler.dragging()
 		toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
 		shouldDisplay = (Glyphs.boolDefaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] and not toolIsTextTool) or toolIsDragging
@@ -433,7 +442,10 @@ class ShowCrosshair(ReporterPlugin):
 	
 	@objc.python_method
 	def background(self, layer):
-		toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
+		theController = Glyphs.currentDocument.windowController()
+		toolEventHandler = theController.toolEventHandler()
+
+		# toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
 		toolIsDragging = toolEventHandler.dragging()
 		toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
 		crossHairCenter = self.mousePosition()
@@ -473,14 +485,17 @@ class ShowCrosshair(ReporterPlugin):
 			crosshairPath.stroke()
 	
 	def mousePosition(self):
-		view = self.controller.graphicView()
+		theController = Glyphs.currentDocument.windowController()
+		view = theController.graphicView()
 		mousePosition = view.getActiveLocation_(Glyphs.currentEvent())
 		return mousePosition
 	
 	@objc.python_method
 	def foregroundInViewCoords(self, layer=None):
 		try:
-			toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
+			theController = Glyphs.currentDocument.windowController()
+			toolEventHandler = theController.toolEventHandler()
+			# toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
 			toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
 
 			# display at bottom left or top left
@@ -500,7 +515,8 @@ class ShowCrosshair(ReporterPlugin):
 					coordinatesText, 
 					fontAttributes
 				)
-				origin = self.controller.viewPort.origin
+				# origin = self.controller.viewPort.origin
+				origin = theController.viewPort.origin
 
 				if coordinatesOption == 0: # show at bottom left
 					textAlignment = 0 # top left: 6, top center: 7, top right: 8, center left: 3, center center: 4, center right: 5, bottom left: 0, bottom center: 1, bottom right: 2
@@ -509,7 +525,8 @@ class ShowCrosshair(ReporterPlugin):
 					displayText.drawAtPoint_alignment_(displayLocation, textAlignment)
 
 				elif coordinatesOption == 1: # show at top left
-					displayLocation = origin.x+10, origin.y+self.controller.viewPort.size.height-fontSize
+					# displayLocation = origin.x+10, origin.y+self.controller.viewPort.size.height-fontSize
+					displayLocation = origin.x+10, origin.y+theController.viewPort.size.height-fontSize
 					textAlignment = 6
 					displayText.drawAtPoint_alignment_(displayLocation, textAlignment)
 				
@@ -527,7 +544,8 @@ class ShowCrosshair(ReporterPlugin):
 							fontAttributes
 						)
 						textAlignment = 0
-						displayXLocation = absMousePosition.x+10, origin.y+self.controller.viewPort.size.height-fontSize-10
+						# displayXLocation = absMousePosition.x+10, origin.y+self.controller.viewPort.size.height-fontSize-10
+						displayXLocation = absMousePosition.x+10, origin.y+theController.viewPort.size.height-fontSize-10
 						mouseXText.drawAtPoint_alignment_(displayXLocation, textAlignment)
 						displayYLocation = origin.x+10, absMousePosition.y-35+10 # 35 window bottom height?
 						mouseYText.drawAtPoint_alignment_(displayYLocation, textAlignment)
@@ -593,17 +611,28 @@ class ShowCrosshair(ReporterPlugin):
 			displayText.drawAtPoint_alignment_((x, y), 4)
 
 	def mouseDown_(self, notification):
-		self.dragStart = self.mousePosition()
+		try:
+			self.dragStart = self.mousePosition()
+		except:
+			traceback.print_exc()
 
 	def mouseUp_(self, notification):
-		self.dragStart = None
-		self.dragging = False
+		try:
+			self.dragStart = None
+			self.dragging = False
+		except:
+			traceback.print_exc()
 
 	def mouseDidMove_(self, notification):
-		if hasattr(self, 'controller') and self.controller:
-			self.controller.redraw()
-		else:
+		try:
 			Glyphs.redraw()
+			# theController = Glyphs.currentDocument.windowController()
+			# if hasattr(self, 'controller') and self.controller:
+			# 	self.controller.redraw()
+			# else:
+			# 	Glyphs.redraw()
+		except:
+			traceback.print_exc()
 
 	def willActivate(self):
 		Glyphs.addCallback(self.mouseDidMove_, MOUSEMOVED)
