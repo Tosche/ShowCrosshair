@@ -304,8 +304,11 @@ class ShowCrosshair(ReporterPlugin):
 	@objc.python_method
 	def foreground(self, layer):
 		try:
-			theController = Glyphs.currentDocument.windowController()
-			toolEventHandler = theController.toolEventHandler()
+			theController = self.controller
+			# theController = Glyphs.currentDocument.windowController()
+			# toolEventHandler = theController.toolEventHandler()
+
+			toolEventHandler = theController.graphicView().window().windowController().toolEventHandler()
 
 			# toolEventHandler = theController.view().window().windowController().toolEventHandler()
 			toolIsDragging = toolEventHandler.dragging()
@@ -425,7 +428,8 @@ class ShowCrosshair(ReporterPlugin):
 						self.drawThicknessBadge(scale, fontSize, x, y, item)
 						self.drawThicknessText(scale, thicknessFontAttributes, x, y, item)
 		except:
-			pass
+			# pass
+			traceback.print_exc()
 
 	@objc.python_method
 	def italicize( self, thisPoint, italicAngle=0.0, pivotalY=0.0 ):
@@ -452,8 +456,10 @@ class ShowCrosshair(ReporterPlugin):
 	@objc.python_method
 	def background(self, layer):
 		try:
-			theController = Glyphs.currentDocument.windowController()
-			toolEventHandler = theController.toolEventHandler()
+			theController = self.controller
+			# theController = Glyphs.currentDocument.windowController()
+			# toolEventHandler = theController.toolEventHandler()
+			toolEventHandler = theController.graphicView().window().windowController().toolEventHandler()
 
 			# toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
 			toolIsDragging = toolEventHandler.dragging()
@@ -494,11 +500,13 @@ class ShowCrosshair(ReporterPlugin):
 				# execute stroke:
 				crosshairPath.stroke()
 		except:
-			pass
+			# pass
+			traceback.print_exc()
 
 	def mousePosition(self):
 		try:
-			theController = Glyphs.currentDocument.windowController()
+			theController = self.controller
+			# theController = Glyphs.currentDocument.windowController()
 			view = theController.graphicView()
 			mousePosition = view.getActiveLocation_(Glyphs.currentEvent())
 			return mousePosition
@@ -508,9 +516,10 @@ class ShowCrosshair(ReporterPlugin):
 	@objc.python_method
 	def foregroundInViewCoords(self, layer=None):
 		try:
-			theController = Glyphs.currentDocument.windowController()
-			toolEventHandler = theController.toolEventHandler()
-			# toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
+			theController = self.controller
+			# theController = Glyphs.currentDocument.windowController()
+			# toolEventHandler = theController.toolEventHandler()
+			toolEventHandler = theController.graphicView().window().windowController().toolEventHandler()
 			toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
 
 			# display at bottom left or top left
@@ -628,8 +637,8 @@ class ShowCrosshair(ReporterPlugin):
 					thicknessFontAttributes
 				)
 				displayText.drawAtPoint_alignment_((x, y), 4)
-			except:
-				pass
+		except:
+			pass
 
 	def mouseDown_(self, notification):
 		try:
