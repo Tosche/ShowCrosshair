@@ -723,7 +723,7 @@ class ShowCrosshair(ReporterPlugin):
 		else:
 			Glyphs.redraw()
 		# self.keyDown_(event)
-		# return event
+		return event
 
 	@objc.python_method
 	def _onKeyUpEvent(self, event):
@@ -732,7 +732,7 @@ class ShowCrosshair(ReporterPlugin):
 		else:
 			Glyphs.redraw()
 		# self.keyUp_(event)
-		# return event
+		return event
 
 	def willActivate(self):
 		Glyphs.addCallback(self.mouseDidMove_, MOUSEMOVED)
@@ -748,9 +748,11 @@ class ShowCrosshair(ReporterPlugin):
 			if hasattr(self, '_keyDownMonitor') and self._keyDownMonitor is not None:
 				NSEvent.removeMonitor_(self._keyDownMonitor)
 				self._keyDownMonitor = None
+				# print('removed key down monitor')
 			if hasattr(self, '_keyUpMonitor') and self._keyUpMonitor is not None:
 				NSEvent.removeMonitor_(self._keyUpMonitor)
 				self._keyUpMonitor = None
+				# print('removed key up monitor')
 		except:
 			pass
 			# import traceback
