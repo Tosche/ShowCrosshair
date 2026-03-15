@@ -11,10 +11,25 @@ from __future__ import division, print_function, unicode_literals
 #######################################################################################
 
 import objc
-from GlyphsApp import *
-from GlyphsApp.plugins import *
+# from GlyphsApp import *
+from GlyphsApp import Glyphs, MOUSEMOVED, MOUSEDOWN, MOUSEUP
+from GlyphsApp.plugins import ReporterPlugin
 from math import radians, tan, hypot
-from AppKit import NSOnState, NSOffState
+from AppKit import NSOnState, NSMenu, NSMenuItem, NSOffState, NSEvent, NSEventMaskKeyDown, NSEventMaskKeyUp
+from Cocoa import (
+	NSRect,
+	NSSize,
+	NSNotFound,
+    NSColor,
+	NSFont,
+	NSBezierPath,
+	NSPoint,
+	NSMakeRect,
+	NSImage,
+	NSAttributedString,
+	NSFontAttributeName,
+	NSForegroundColorAttributeName
+	)
 import traceback
 # to set context menu set state
 # from AppKit import NSBundle
@@ -46,6 +61,7 @@ class ShowCrosshair(ReporterPlugin):
 			del Glyphs.defaults["com.mekkablue.ShowCrosshair.universalCrosshair"]
 		
 		self.generalContextMenus = self.buildContextMenus()
+		self.lastMousePosition = NSPoint(0,0)
 		self.dragStart = None # drag origin point
 
 	@objc.python_method
@@ -304,6 +320,10 @@ class ShowCrosshair(ReporterPlugin):
 	@objc.python_method
 	def foreground(self, layer):
 		try:
+			# early exit when in inactive document
+			if layer.parent.parent != Glyphs.font:
+				return
+
 			theController = self.controller
 			# theController = Glyphs.currentDocument.windowController()
 			# toolEventHandler = theController.toolEventHandler()
@@ -393,17 +413,18 @@ class ShowCrosshair(ReporterPlugin):
 				# dragging width and height
 				if font.tool == 'SelectTool' and toolIsDragging:
 					origin = self.dragStart
-					width = round(mousePosition.x-origin.x)
-					height = round(mousePosition.y-origin.y)
+					if origin is not None:
+						width = round(mousePosition.x-origin.x)
+						height = round(mousePosition.y-origin.y)
 
-					widthText = NSAttributedString.alloc().initWithString_attributes_(
-						"%s × %s" % (str(abs(width)), str(abs(height))),
-						thicknessFontAttributes
-					)
+						widthText = NSAttributedString.alloc().initWithString_attributes_(
+							"%s × %s" % (str(abs(width)), str(abs(height))),
+							thicknessFontAttributes
+						)
 
-					textAlignment = 2 # top left: 6, top center: 7, top right: 8, center left: 3, center center: 4, center right: 5, bottom left: 0, bottom center: 1, bottom right: 2
-					sizePos = (max(origin.x,mousePosition.x)-4/scale, min(origin.y,mousePosition.y)-fontSize-4)
-					widthText.drawAtPoint_alignment_(sizePos, textAlignment)
+						textAlignment = 2 # top left: 6, top center: 7, top right: 8, center left: 3, center center: 4, center right: 5, bottom left: 0, bottom center: 1, bottom right: 2
+						sizePos = (max(origin.x,mousePosition.x)-4/scale, min(origin.y,mousePosition.y)-fontSize-4)
+						widthText.drawAtPoint_alignment_(sizePos, textAlignment)
 
 				# number badges on vertical slice:
 				for key in ys:
@@ -456,6 +477,10 @@ class ShowCrosshair(ReporterPlugin):
 	@objc.python_method
 	def background(self, layer):
 		try:
+			# early exit when in inactive document
+			if layer.parent.parent != Glyphs.font:
+				return
+
 			theController = self.controller
 			# theController = Glyphs.currentDocument.windowController()
 			# toolEventHandler = theController.toolEventHandler()
@@ -506,10 +531,14 @@ class ShowCrosshair(ReporterPlugin):
 	def mousePosition(self):
 		try:
 			theController = self.controller
-			# theController = Glyphs.currentDocument.windowController()
-			view = theController.graphicView()
-			mousePosition = view.getActiveLocation_(Glyphs.currentEvent())
-			return mousePosition
+			event = Glyphs.currentEvent()
+		
+			# only update lastMousePosition if mouse event, otherwise keep last position
+			if event and event.type() in (1,2,5,6): # NSLeftMouseDown, NSLeftMouseUp, NSMouseMoved, NSLeftMouseDragged
+				# theController = Glyphs.currentDocument.windowController()
+				view = theController.graphicView()
+				self.lastMousePosition = view.getActiveLocation_(event)
+			return self.lastMousePosition
 		except:
 			pass
 	
@@ -657,25 +686,71 @@ class ShowCrosshair(ReporterPlugin):
 
 	def mouseDidMove_(self, notification):
 		try:
-			Glyphs.redraw()
 			# theController = Glyphs.currentDocument.windowController()
-			# if hasattr(self, 'controller') and self.controller:
-			# 	self.controller.redraw()
-			# else:
-			# 	Glyphs.redraw()
+			if hasattr(self, 'controller') and self.controller:
+				self.controller.redraw()
+			else:
+				Glyphs.redraw()
 		except:
 			pass
 			# traceback.print_exc()
+	
+	# def keyUp_(self, notification):
+	# 	try:
+	# 		print('key up')
+	# 		if hasattr(self, 'controller') and self.controller:
+	# 			print('controller redraw')
+	# 			self.controller.redraw()
+	# 		else:
+	# 			print('glyphs redraw')
+	# 			Glyphs.redraw()
+	# 	except:
+	# 		pass
+
+	# def keyDown_(self, notification):
+	# 	try:
+	# 		if hasattr(self, 'controller') and self.controller:
+	# 			self.controller.redraw()
+	# 		else:
+	# 			Glyphs.redraw()
+	# 	except:
+	# 		pass
+
+	@objc.python_method
+	def _onKeyDownEvent(self, event):
+		if hasattr(self, 'controller') and self.controller:
+			self.controller.redraw()
+		else:
+			Glyphs.redraw()
+		# self.keyDown_(event)
+		# return event
+
+	@objc.python_method
+	def _onKeyUpEvent(self, event):
+		if hasattr(self, 'controller') and self.controller:
+			self.controller.redraw()
+		else:
+			Glyphs.redraw()
+		# self.keyUp_(event)
+		# return event
 
 	def willActivate(self):
 		Glyphs.addCallback(self.mouseDidMove_, MOUSEMOVED)
 		Glyphs.addCallback(self.mouseDown_, MOUSEDOWN)
 		Glyphs.addCallback(self.mouseUp_, MOUSEUP)
+		self._keyDownMonitor = NSEvent.addLocalMonitorForEventsMatchingMask_handler_(NSEventMaskKeyDown, self._onKeyDownEvent)
+		self._keyUpMonitor = NSEvent.addLocalMonitorForEventsMatchingMask_handler_(NSEventMaskKeyUp, self._onKeyUpEvent)
 	def willDeactivate(self):
 		try:
 			Glyphs.removeCallback(self.mouseDidMove_, MOUSEMOVED)
 			Glyphs.removeCallback(self.mouseDown_, MOUSEDOWN)
 			Glyphs.removeCallback(self.mouseUp_, MOUSEUP)
+			if hasattr(self, '_keyDownMonitor') and self._keyDownMonitor is not None:
+				NSEvent.removeMonitor_(self._keyDownMonitor)
+				self._keyDownMonitor = None
+			if hasattr(self, '_keyUpMonitor') and self._keyUpMonitor is not None:
+				NSEvent.removeMonitor_(self._keyUpMonitor)
+				self._keyUpMonitor = None
 		except:
 			pass
 			# import traceback
