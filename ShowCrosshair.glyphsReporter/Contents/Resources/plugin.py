@@ -20,7 +20,7 @@ from Cocoa import (
 	NSRect,
 	NSSize,
 	NSNotFound,
-    NSColor,
+	NSColor,
 	NSFont,
 	NSBezierPath,
 	NSPoint,
@@ -340,6 +340,8 @@ class ShowCrosshair(ReporterPlugin):
 				font = Glyphs.font
 				master = layer.associatedFontMaster()
 				scale = self.getScale()
+				if scale < 0.1: # if display size is below 100pt
+					return 
 				mousePosition = self.mousePosition()
 				
 				# intersection markers:
@@ -480,6 +482,10 @@ class ShowCrosshair(ReporterPlugin):
 			# early exit when in inactive document
 			if layer.parent.parent != Glyphs.font:
 				return
+			
+			scale = self.getScale()
+			if scale < 0.1: # if display size is below 100pt
+				return
 
 			theController = self.controller
 			# theController = Glyphs.currentDocument.windowController()
@@ -545,6 +551,9 @@ class ShowCrosshair(ReporterPlugin):
 	@objc.python_method
 	def foregroundInViewCoords(self, layer=None):
 		try:
+			scale = self.getScale()
+			if scale < 0.1: # if display size is below 100pt
+				return
 			theController = self.controller
 			# theController = Glyphs.currentDocument.windowController()
 			# toolEventHandler = theController.toolEventHandler()
@@ -718,7 +727,9 @@ class ShowCrosshair(ReporterPlugin):
 
 	@objc.python_method
 	def _onKeyDownEvent(self, event):
-		if hasattr(self, 'controller') and self.controller:
+		if Glyphs.currentDocument is None:
+			return event
+		if hasattr(self, 'controller') and self.controller is not None:
 			self.controller.redraw()
 		else:
 			Glyphs.redraw()
@@ -727,7 +738,9 @@ class ShowCrosshair(ReporterPlugin):
 
 	@objc.python_method
 	def _onKeyUpEvent(self, event):
-		if hasattr(self, 'controller') and self.controller:
+		if Glyphs.currentDocument is None:
+			return event
+		if hasattr(self, 'controller') and self.controller is not None:
 			self.controller.redraw()
 		else:
 			Glyphs.redraw()
