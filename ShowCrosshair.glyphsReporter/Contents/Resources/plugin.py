@@ -333,7 +333,9 @@ class ShowCrosshair(ReporterPlugin):
 			# toolEventHandler = theController.view().window().windowController().toolEventHandler()
 			toolIsDragging = toolEventHandler.dragging()
 			toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
-			shouldDisplay = (Glyphs.boolDefaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] and not toolIsTextTool) or toolIsDragging
+			toolIsHandTool = toolEventHandler.className() == "GlyphsToolHand"
+			wrongTool = toolIsTextTool or toolIsHandTool
+			shouldDisplay = (Glyphs.boolDefaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] and not wrongTool) or toolIsDragging
 			useItalicAxis = Glyphs.defaults["com.mekkablue.ShowCrosshair.italicAxis"] # 0=vertical, 1=italic, 2=both
 			
 			if Glyphs.boolDefaults["com.mekkablue.ShowCrosshair.showThickness"] and shouldDisplay:
@@ -495,8 +497,10 @@ class ShowCrosshair(ReporterPlugin):
 			# toolEventHandler = self.controller.view().window().windowController().toolEventHandler()
 			toolIsDragging = toolEventHandler.dragging()
 			toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
+			toolIsHandTool = toolEventHandler.className() == "GlyphsToolHand"
+			wrongTool = toolIsTextTool or toolIsHandTool
 			crossHairCenter = self.mousePosition()
-			shouldDisplay = (Glyphs.boolDefaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] and not toolIsTextTool) or toolIsDragging
+			shouldDisplay = (Glyphs.boolDefaults["com.mekkablue.ShowCrosshair.alwaysCrosshair"] and not wrongTool) or toolIsDragging
 			
 			if crossHairCenter.x < NSNotFound and shouldDisplay:
 				# determine italic angle:
@@ -559,10 +563,12 @@ class ShowCrosshair(ReporterPlugin):
 			# toolEventHandler = theController.toolEventHandler()
 			toolEventHandler = theController.graphicView().window().windowController().toolEventHandler()
 			toolIsTextTool = toolEventHandler.className() == "GlyphsToolText"
+			toolIsHandTool = toolEventHandler.className() == "GlyphsToolHand"
+			wrongTool = toolIsTextTool or toolIsHandTool
 
 			# display at bottom left or top left
 			coordinatesOption = Glyphs.defaults["com.mekkablue.ShowCrosshair.showCoordinates"]
-			if not toolIsTextTool:
+			if not wrongTool:
 
 				fontSize = Glyphs.defaults["com.mekkablue.ShowCrosshair.fontSize"]
 				fontAttributes = { 
